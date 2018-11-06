@@ -1,0 +1,46 @@
+---
+title: "P8105_hw5_jl5172"
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r}
+library(tidyverse)
+library(rvest)
+```
+
+```{r}
+all_files<-list.files("./data/",full.names = T)
+
+df<- all_files %>% 
+  map(read_csv)
+
+for(i in 1:length(all_files)){
+  if(i<=10){
+   df[[i]]<-df[[i]] %>% 
+     mutate(control_arm="Control",subject_id=i)
+  } else if (i>=11){
+     df[[i]]<-df[[i]] %>% 
+       mutate(control_arm="Experiment",subject_id=i)
+   }
+}
+
+df<-bind_rows(df)
+df<-df %>% 
+  janitor::clean_names() 
+```
+
+```{r}
+df %>% 
+  gather(key=week,value=data,week_1:week_8) %>% 
+  ggplot(aes(x=week,y=data,color=control_arm, group =subject_id))+
+  geom_line()+geom_point(size=0.1)+
+  facet_grid(~control_arm)+
+  labs(title="Plot for Observations Over Weeks ",xlab="Week",ylab="Observation")
+
+```
+

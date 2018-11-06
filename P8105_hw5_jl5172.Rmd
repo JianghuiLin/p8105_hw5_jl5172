@@ -10,10 +10,9 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 library(tidyverse)
-library(rvest)
 ```
 
-```{r}
+```{r,echo=FALSE,message=F}
 all_files<-list.files("./data/",full.names = T)
 
 df<- all_files %>% 
@@ -22,22 +21,29 @@ df<- all_files %>%
 for(i in 1:length(all_files)){
   if(i<=10){
    df[[i]]<-df[[i]] %>% 
-     mutate(control_arm="Control",subject_id=i)
+     mutate(control_arm="Control",id=i)
   } else if (i>=11){
      df[[i]]<-df[[i]] %>% 
-       mutate(control_arm="Experiment",subject_id=i)
+       mutate(control_arm="Experiment",id=i)
    }
 }
 
-df<-bind_rows(df)
-df<-df %>% 
-  janitor::clean_names() 
+
 ```
 
+
 ```{r}
+df<-bind_rows(df)
+df<-df %>% 
+  janitor::clean_names() %>% 
+  as.tibble()
+df
+```
+
+```{r,fig.width =12}
 df %>% 
   gather(key=week,value=data,week_1:week_8) %>% 
-  ggplot(aes(x=week,y=data,color=control_arm, group =subject_id))+
+  ggplot(aes(x=week,y=data,color=control_arm, group =id))+
   geom_line()+geom_point(size=0.1)+
   facet_grid(~control_arm)+
   labs(title="Plot for Observations Over Weeks ",xlab="Week",ylab="Observation")

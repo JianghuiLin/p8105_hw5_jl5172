@@ -50,3 +50,47 @@ df %>%
 
 ```
 
+
+#Question 2
+```{r}
+homicide<-read_csv("https://raw.githubusercontent.com/washingtonpost/data-homicides/master/homicide-data.csv")
+```
+
+
+```{r}
+homicide_summary<- homicide %>% 
+  mutate(city_state=str_c(city,state,sep=",")) %>% 
+  group_by(city_state) %>% 
+  summarise(homicide_cases=n())
+  
+```
+
+
+```{r}
+unsolved_summary<-homicide %>% 
+  mutate(city_state=str_c(city,state,sep=",")) %>% 
+  filter(disposition=="Closed without arrest"|disposition=="Open/No arrest") %>%   group_by(city_state) %>% 
+  summarise(unsolved=n())
+  
+```
+
+
+```{r}
+combined_summary = 
+  left_join(homicide_summary,unsolved_summary,by="city_state") 
+```
+
+
+```{r}
+Homicide_Baltimore<-combined_summary %>% 
+  filter(city_state=="Baltimore,MD") 
+
+Baltimore_prop_t<-prop.test(Homicide_Baltimore$unsolved,Homicide_Baltimore$homicide_cases)
+
+broom::tidy(Baltimore_prop_t) %>% 
+select(estimate, conf.low, conf.high)
+
+```
+
+
+

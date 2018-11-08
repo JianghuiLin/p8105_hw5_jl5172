@@ -54,43 +54,84 @@ df %>%
 #Question 2
 ```{r}
 homicide<-read_csv("https://raw.githubusercontent.com/washingtonpost/data-homicides/master/homicide-data.csv")
+#reading csv from github
 ```
 
 
-```{r}
-homicide_summary<- homicide %>% 
+```{homicide summary}
+homicide_summary<- homicide %>%   
   mutate(city_state=str_c(city,state,sep=",")) %>% 
   group_by(city_state) %>% 
-  summarise(homicide_cases=n())
+  summarise(homicide_cases=n())  #summarize all homicide cases
   
 ```
 
 
-```{r}
+```{unsolved homicide summary}
 unsolved_summary<-homicide %>% 
   mutate(city_state=str_c(city,state,sep=",")) %>% 
   filter(disposition=="Closed without arrest"|disposition=="Open/No arrest") %>%   group_by(city_state) %>% 
-  summarise(unsolved=n())
+  summarise(unsolved=n()) #summerize unsolved hoimicide cases
   
 ```
 
 
 ```{r}
 combined_summary = 
-  left_join(homicide_summary,unsolved_summary,by="city_state") 
+  left_join(homicide_summary,unsolved_summary,by="city_state") #left_join,combined summary contain all rows from homicide_summary,if unsolved_summary do not have corresponding value, return NA)
+
+ for(i in 1:51){
+  if(is.na(combined_summary$unsolved[[i]])==T) {
+    combined_summary$unsolved[[i]]<-0
+  }
+}    # use for loop to convert any NA data in unsolved column to 0
+
+head(combined_summary)
 ```
 
 
 ```{r}
-Homicide_Baltimore<-combined_summary %>% 
-  filter(city_state=="Baltimore,MD") 
+Homicide_Baltimore<-combined_summary  %>% 
+  filter(city_state=="Baltimore,MD") #find data of Baltimore using filter
 
-Baltimore_prop_t<-prop.test(Homicide_Baltimore$unsolved,Homicide_Baltimore$homicide_cases)
+Baltimore_prop_t<-prop.test(Homicide_Baltimore$unsolved,Homicide_Baltimore$homicide_cases) #Run prop.test for Baltimore
 
 broom::tidy(Baltimore_prop_t) %>% 
-select(estimate, conf.low, conf.high)
+select(estimate, conf.low, conf.high) #extracting parameters wanted
 
 ```
 
+Now run prop.test for each of the cities in your dataset, and extract both the proportion of unsolved homicides and the confidence interval for each. Do this within a “tidy” pipeline, making use of purrr::map, purrr::map2, list columns and  unnest as necessary to create a tidy dataframe with estimated proportions and CIs for each city.
+```{r}
 
+combined_proptest <- map2(.x = combined_summary$unsolved, 
+                          .y = combined_summary$homicide_cases, ~prop.test(.x, .y))   
+#use map2 which can fit in two input columns and run prop.test for all cities
+
+
+combined_proptest<-map_df(.x=combined_proptest,
+         ~broom::tidy(.x) %>%    #tidy and select parameters wanted
+  select(estimate,conf.low,conf.high))
+
+combined_proptest<-combined_proptest %>% 
+  mutate(city_state=combined_summary$city_state) %>%  # adding column city_state
+  select(city_state,estimate,conf.low,conf.high)
+
+head(combined_proptest)
+```
+
+Create a plot that shows the estimates and CIs for each city 
+```{prop.test plot for all cities,fig.width=10}
+combined_proptest %>% 
+  mutate(city_state = fct_reorder(city_state, estimate)) %>% 
+  ggplot(aes(x = city_state, y = estimate, ymin = conf.low, ymax = conf.high,color=city_state)) +
+    geom_point() +
+    geom_errorbar() +
+    #theme_bw() +
+    theme(axis.text.x = element_text(angle = 90,size = 8)) +
+  theme(legend.position = "none")+
+  labs(x="City",y="Proportion Estimate",title="Proportion Estimates for All Cities")
+
+  
+```
 

@@ -12,13 +12,17 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 ```
 
-```{r,echo=FALSE,message=F}
-all_files<-list.files("./data/",full.names = T)
+```{r,echo=T,message=F}
+all_files<-list.files("./data/",full.names = T) 
 
 df<- all_files %>% 
-  map(read_csv)
+  map(read_csv)  #use map function to mapping read_csv in order to read all files in data folder
 
-for(i in 1:length(all_files)){
+
+```
+
+```{r}
+for(i in 1:length(all_files)){  #categorize data by adding column named control arm
   if(i<=10){
    df[[i]]<-df[[i]] %>% 
      mutate(control_arm="Control",id=i)
@@ -28,18 +32,15 @@ for(i in 1:length(all_files)){
    }
 }
 
-
-```
-
-
-```{r}
-df<-bind_rows(df)
+df<-bind_rows(df)   
 df<-df %>% 
   janitor::clean_names() %>% 
   as.tibble()
 df
 ```
 
+
+Spaghetti plot showing observations on each subject over time
 ```{r,fig.width =12}
 df %>% 
   gather(key=week,value=data,week_1:week_8) %>% 
@@ -50,24 +51,32 @@ df %>%
 
 ```
 
+Comment:We can see from the plot that 
+The observation data for control group are flutuating without showing any trend over weeks
+whereas the trend for experimental group is increasing over weeks.
 
 #Question 2
-```{r}
+```{r,message=FALSE}
 homicide<-read_csv("https://raw.githubusercontent.com/washingtonpost/data-homicides/master/homicide-data.csv")
 #reading csv from github
 ```
 
+This dataset contains `r nrow(homicide)` observations and `r ncol(homicide)` variables. Observations denote cases of homicide over the past decade in 50 of the largest American cities.The dataset included the location of the killing-columns "city" and "state",whether an arrest was made--"disposition",basic demographic information about each victim--"victim_first","victim_last",victim_race","victim_age" and "victim_sex".
 
-```{homicide summary}
+
+
+```{r}
+
+  
+```
+
+Summarize homicide cases and unsolved homicide cases
+```{r}
 homicide_summary<- homicide %>%   
   mutate(city_state=str_c(city,state,sep=",")) %>% 
   group_by(city_state) %>% 
   summarise(homicide_cases=n())  #summarize all homicide cases
-  
-```
 
-
-```{unsolved homicide summary}
 unsolved_summary<-homicide %>% 
   mutate(city_state=str_c(city,state,sep=",")) %>% 
   filter(disposition=="Closed without arrest"|disposition=="Open/No arrest") %>%   group_by(city_state) %>% 
@@ -75,7 +84,7 @@ unsolved_summary<-homicide %>%
   
 ```
 
-
+Combined summary for homcide cases
 ```{r}
 combined_summary = 
   left_join(homicide_summary,unsolved_summary,by="city_state") #left_join,combined summary contain all rows from homicide_summary,if unsolved_summary do not have corresponding value, return NA)
@@ -90,6 +99,7 @@ head(combined_summary)
 ```
 
 
+Homcide prop.test for Baltimore
 ```{r}
 Homicide_Baltimore<-combined_summary  %>% 
   filter(city_state=="Baltimore,MD") #find data of Baltimore using filter
@@ -101,7 +111,7 @@ select(estimate, conf.low, conf.high) #extracting parameters wanted
 
 ```
 
-Now run prop.test for each of the cities in your dataset, and extract both the proportion of unsolved homicides and the confidence interval for each. Do this within a “tidy” pipeline, making use of purrr::map, purrr::map2, list columns and  unnest as necessary to create a tidy dataframe with estimated proportions and CIs for each city.
+Prop.test of homicide/unsolved homicide cases for all 51 cities.
 ```{r}
 
 combined_proptest <- map2(.x = combined_summary$unsolved, 
@@ -131,7 +141,6 @@ combined_proptest %>%
     theme(axis.text.x = element_text(angle = 90,size = 8)) +
   theme(legend.position = "none")+
   labs(x="City",y="Proportion Estimate",title="Proportion Estimates for All Cities")
-
   
 ```
 

@@ -131,7 +131,7 @@ head(combined_proptest)
 ```
 
 Create a plot that shows the estimates and CIs for each city 
-```{prop.test plot for all cities,fig.width=10}
+```{r,fig.width=10}
 combined_proptest %>% 
   mutate(city_state = fct_reorder(city_state, estimate)) %>% 
   ggplot(aes(x = city_state, y = estimate, ymin = conf.low, ymax = conf.high,color=city_state)) +
